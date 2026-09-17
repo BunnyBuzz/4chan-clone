@@ -1,25 +1,19 @@
-document.getElementById("filter").addEventListener("click", function(e) {
+function setupDropdown(triggerId, listId) {
+    const trigger = document.getElementById(triggerId);
+    const list = document.getElementById(listId);
+    if (!trigger || !list) return;
+
+    trigger.addEventListener("click", function(e) {
+        e.preventDefault();
+        list.style.display = (list.style.display === "block") ? "none" : "block";
+    });
+
     document.addEventListener("click", function(e) {
-        if (!e.target.closest("#filter") && !e.target.closest("#flist")) {
-        document.getElementById("flist").style.display = "none";
-    }
-});
-    e.preventDefault(); 
-    const flist = document.getElementById("flist");
-    flist.style.display = (flist.style.display === "block") ? "none" : "block";
-});
+        if (!e.target.closest("#" + triggerId) && !e.target.closest("#" + listId)) {
+            list.style.display = "none";
+        }
+    });
+}
 
-
-
-
-document.getElementById("options").addEventListener("click", function(e) {
-    document.addEventListener("click", function(e) {
-        if (!e.target.closest("#options") && !e.target.closest("#olist")) {
-        document.getElementById("olist").style.display = "none";
-    }
-});
-    e.preventDefault(); 
-    const flist = document.getElementById("olist");
-    flist.style.display = (flist.style.display === "block") ? "none" : "block";
-});
-
+setupDropdown("filter", "flist");
+setupDropdown("options", "olist");

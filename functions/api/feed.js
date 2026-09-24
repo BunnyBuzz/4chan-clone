@@ -9,7 +9,7 @@ export async function onRequestGet(context) {
     const board = (params.get('board') || 'c').slice(0, 8);
     const limit = Math.min(parseInt(params.get('limit') || '30', 10) || 30, 100);
 
-    const rows = await context.env.DB.prepare(
+    const rows = await db.prepare(
       'SELECT t.id, t.board, t.author, t.user_id, t.text, t.images, t.created_at, ' +
       '(SELECT COUNT(*) FROM replies r WHERE r.thread_id = t.id) AS replies, ' +
       '(SELECT count FROM likes l WHERE l.target_id = t.id) AS likes ' +

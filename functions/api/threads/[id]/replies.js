@@ -81,7 +81,8 @@ export async function onRequestDelete(context) {
     if (!r) return json({ error: 'Reply not found.' }, 404);
 
     const meDel = await sessionUser(db, context.request);
-    if (r.user_id && (!meDel || meDel.id !== r.user_id)) {
+    if (!meDel) return json({ error: 'Login required.' }, 401);
+    if (r.user_id && meDel.id !== r.user_id) {
       return json({ error: 'Not yours.' }, 403);
     }
 

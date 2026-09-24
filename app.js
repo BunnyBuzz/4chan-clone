@@ -729,12 +729,30 @@ document.addEventListener("DOMContentLoaded", function() {
         }).catch(function() {});
 
         postBtn.addEventListener("click", function() {
+            if (postBtn.disabled) return;
             var text = textInput.value.trim();
             var files = uploadedFiles.slice();
             if (!text && !files.length) return;
+            var tooBig = files.filter(function(f) { return f.type === "image/gif" && f.size > 10 * 1024 * 1024; });
+            if (tooBig.length) {
+                alert("GIF over 10MB can't be uploaded — it was removed. The rest will post.");
+                files = files.filter(function(f) { return !(f.type === "image/gif" && f.size > 10 * 1024 * 1024); });
+                if (!text && !files.length) return;
+            }
+            postBtn.disabled = true;
+            var btnLabel = postBtn.textContent;
+            postBtn.textContent = "Posting…";
+            function unlockBtn() { postBtn.disabled = false; postBtn.textContent = btnLabel; }
+            function withTimeout(promise, ms) {
+                return new Promise(function(resolve, reject) {
+                    var done = false;
+                    var timer = setTimeout(function() { if (!done) { done = true; reject(new Error("timeout")); } }, ms);
+                    promise.then(function(v) { if (!done) { done = true; clearTimeout(timer); resolve(v); } }, function(e) { if (!done) { done = true; clearTimeout(timer); reject(e); } });
+                });
+            }
             var threads = getThreads();
             var d = {
-                id: "u" + Date.now().toString(36) + Math.floor(Math.random() * 90 + 10),
+                id: (Math.random().toString(16).slice(2) + "00000000").slice(0, 8),
                 name: (nameInput && nameInput.value.trim()) || "Anonymous",
                 tag: (tagInput && tagInput.value.trim()) || "",
                 text: text,
@@ -788,6 +806,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (counter) counter.textContent = "0/2000";
                 if (thumbBox) thumbBox.innerHTML = "";
                 uploadedFiles = [];
+                unlockBtn();
                 textInput.focus();
             }
             function publishLocal() {
@@ -811,6 +830,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         alert("Image too large for local test storage — posted as text only.");
                     } catch (e2) {
                         alert("Storage full — could not save post.");
+                        unlockBtn();
                         return;
                     }
                 }
@@ -841,7 +861,7 @@ document.addEventListener("DOMContentLoaded", function() {
             files.forEach(function(f) {
                 processImage(f).then(function(item) {
                     if (!item) { if (--pending === 0) publish(); return; }
-                    uploadToApi(item).then(function(url) {
+                    withTimeout(uploadToApi(item), 60000).then(function(url) {
                         d.images.push(url);
                         if (--pending === 0) publish();
                     }, function() {

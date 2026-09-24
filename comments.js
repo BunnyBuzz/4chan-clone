@@ -36,12 +36,10 @@ function cmDeriveTitle() {
         var m = el.textContent.match(/ID:\s*([0-9a-f]{4,})/i);
         return m ? m[1].toLowerCase() : null;
     }
-    var cmAnonN = 0;
     function cmEnsureId(post) {
         var id = cmPostId(post);
         if (!id) {
-            cmAnonN++;
-            id = "u" + Date.now().toString(16).slice(-4) + cmAnonN;
+            id = (Math.random().toString(16).slice(2) + "00000000").slice(0, 8);
             var head = post.querySelector(".cm-rhead, .cm-op-user");
             if (head) {
                 var s = document.createElement("span");
@@ -337,6 +335,16 @@ function cmDeriveTitle() {
     function cmRenderReplies() {
         cmRenderRepliesFrom(cmThreadReplies(cmTid).map(cmNormReply));
     }
+    function cmBindOpZoom() {
+        var im = document.querySelector(".cm-op-img img");
+        if (im && !im.dataset.zoomWired) {
+            im.dataset.zoomWired = "1";
+            im.addEventListener("click", function() {
+                cmLB.querySelector(".lb-img").src = im.src;
+                cmLB.classList.add("open");
+            });
+        }
+    }
     function cmRenderAll() {
         var host = document.getElementById("cm-thread");
         var list = document.getElementById("cm-replies");
@@ -358,6 +366,7 @@ function cmDeriveTitle() {
             op.id = "p-" + j.thread.id;
             host.appendChild(op);
             cmWirePost(op);
+            cmBindOpZoom();
             var api = (j.replies || []).map(cmNormReply);
             var seen = {};
             api.forEach(function(r) { seen[r.id] = 1; });
@@ -374,9 +383,10 @@ function cmDeriveTitle() {
             }
             var op = cmBuildOp(t);
             op.id = "p-" + t.id;
-            host.appendChild(op);
-            cmWirePost(op);
-            cmRenderReplies();
+        host.appendChild(op);
+        cmWirePost(op);
+        cmBindOpZoom();
+        cmRenderReplies();
             cmDeriveTitle();
         });
     }
@@ -513,10 +523,29 @@ function cmDeriveTitle() {
         });
     }
     document.getElementById("cm-post-reply").addEventListener("click", function() {
+        var replyBtn = document.getElementById("cm-post-reply");
+        if (replyBtn.disabled) return;
         var box = document.getElementById("cm-quick-text");
         var text = box.value.trim();
         var files = cmFiles.slice();
         if ((!text && !files.length) || !cmTid) return;
+        var tooBig = files.filter(function(f) { return f.type === "image/gif" && f.size > 10 * 1024 * 1024; });
+        if (tooBig.length) {
+            alert("GIF over 10MB can't be uploaded — it was removed. The rest will post.");
+            files = files.filter(function(f) { return !(f.type === "image/gif" && f.size > 10 * 1024 * 1024); });
+            if (!text && !files.length) return;
+        }
+        replyBtn.disabled = true;
+        var replyLabel = replyBtn.textContent;
+        replyBtn.textContent = "Posting…";
+        function unlockReplyBtn() { replyBtn.disabled = false; replyBtn.textContent = replyLabel; }
+        function cmWithTimeout(promise, ms) {
+            return new Promise(function(resolve, reject) {
+                var done = false;
+                var timer = setTimeout(function() { if (!done) { done = true; reject(new Error("timeout")); } }, ms);
+                promise.then(function(v) { if (!done) { done = true; clearTimeout(timer); resolve(v); } }, function(e) { if (!done) { done = true; clearTimeout(timer); reject(e); } });
+            });
+        }
         var nameBox = document.getElementById("cm-quick-name");
         var name = (nameBox && nameBox.value.trim()) || "Anonymous";
         var rid = Math.random().toString(16).slice(2, 10);
@@ -526,10 +555,17 @@ function cmDeriveTitle() {
             if (cmQuickCount) cmQuickCount.textContent = "0/2000";
             document.getElementById("cm-images-container").innerHTML = "";
             cmFiles = [];
+            unlockReplyBtn();
+        }
+        function cmApiWithTimeout(path, opts) {
+            return Promise.race([
+                cmApi(path, opts),
+                new Promise(function(_, reject) { setTimeout(function() { reject(new Error("timeout")); }, 60000); })
+            ]);
         }
         function done() {
             var payload = { author: name, text: text, images: imgs };
-            cmApi("/api/threads/" + encodeURIComponent(cmTid) + "/replies", {
+            cmApiWithTimeout("/api/threads/" + encodeURIComponent(cmTid) + "/replies", {
                 method: "POST",
                 headers: cmAuthHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify(payload)
@@ -547,6 +583,7 @@ function cmDeriveTitle() {
                     imgs = [];
                     try { localStorage.setItem("cm-thread-replies-" + cmTid, JSON.stringify(all)); } catch (e2) {
                         alert("Storage full — could not save reply.");
+                        unlockReplyBtn();
                         return;
                     }
                     alert("Image too large for local test storage — posted as text only.");
@@ -561,7 +598,7 @@ function cmDeriveTitle() {
         files.forEach(function(f) {
             cmProcessImage(f).then(function(item) {
                 if (!item) { if (--pending === 0) done(); return; }
-                cmUploadToApi(item).then(function(url) {
+                cmWithTimeout(cmUploadToApi(item), 60000).then(function(url) {
                     imgs.push(url);
                     if (--pending === 0) done();
                 }, function() {
@@ -594,7 +631,4 @@ function cmDeriveTitle() {
     cmLB.querySelector(".lb-close").addEventListener("click", function() { cmLB.classList.remove("open"); });
     cmLB.addEventListener("click", function(e) { if (e.target === cmLB) cmLB.classList.remove("open"); });
     document.addEventListener("keydown", function(e) { if (e.key === "Escape") cmLB.classList.remove("open"); });
-    document.querySelector(".cm-op-img img").addEventListener("click", function() {
-        cmLB.querySelector(".lb-img").src = this.src;
-        cmLB.classList.add("open");
-    });
+    cmBindOpZoom();

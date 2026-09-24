@@ -34,7 +34,8 @@ export async function onRequestDelete(context) {
     if (!t) return json({ error: 'Thread not found.' }, 404);
 
     const me = await sessionUser(db, context.request);
-    if (t.user_id && (!me || me.id !== t.user_id)) {
+    if (!me) return json({ error: 'Login required.' }, 401);
+    if (t.user_id && me.id !== t.user_id) {
       return json({ error: 'Not yours.' }, 403);
     }
 

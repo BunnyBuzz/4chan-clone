@@ -1,0 +1,61 @@
+{
+  "routes": [
+    {
+      "routePath": "/api/threads/:id/replies",
+      "mountPath": "/api/threads/:id",
+      "method": "GET",
+      "module": [
+        "api/threads/[id]/replies.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/threads/:id/replies",
+      "mountPath": "/api/threads/:id",
+      "method": "POST",
+      "module": [
+        "api/threads/[id]/replies.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/threads/:id",
+      "mountPath": "/api/threads",
+      "method": "GET",
+      "module": [
+        "api/threads/[id].js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/delete",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/delete.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/feed",
+      "mountPath": "/api",
+      "method": "GET",
+      "module": [
+        "api/feed.js:onRequestGet"
+      ]
+    },
+    {
+      "routePath": "/api/threads",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/threads.js:onRequestPost"
+      ]
+    },
+    {
+      "routePath": "/api/upload",
+      "mountPath": "/api",
+      "method": "POST",
+      "module": [
+        "api/upload.js:onRequestPost"
+      ]
+    }
+  ],
+  "baseURL": "/"
+}

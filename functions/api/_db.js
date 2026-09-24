@@ -6,7 +6,8 @@ export function json(data, status = 200) {
 }
 
 export function getDb(env) {
-  return env && env.DB ? env.DB : null;
+  if (!env) return null;
+  return env.DB || env['katsura-db'] || null;
 }
 
 export function newId() {

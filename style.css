@@ -703,11 +703,13 @@ body {
     color: #a81c07;
 }
 .userbox-avatar{
-    width: 60px;
-    height: 60px;
+    width: 100%;
+    height: auto;
+    display: block;
     object-fit: cover;
     border: 1px solid #e8d0be;
     border-radius: 4px;
+    box-sizing: border-box;
 }
 #logoutbtn, #registertbtn{
     background: transparent;

@@ -19,6 +19,116 @@ setupDropdown("filter", "flist");
 setupDropdown("options", "olist");
 setupDropdown("post-menu-btn", "post-menu");
 
+// Auth session: login UI state + token for API calls
+window.cmMe = null;
+function cmGetToken() {
+    try { return localStorage.getItem("cm-session"); } catch (e) { return null; }
+}
+function cmSetToken(t) {
+    try {
+        if (t) localStorage.setItem("cm-session", t);
+        else localStorage.removeItem("cm-session");
+    } catch (e) {}
+}
+function cmAuthHeaders(extra) {
+    var h = extra || {};
+    var t = cmGetToken();
+    if (t) h["Authorization"] = "Bearer " + t;
+    return h;
+}
+function renderAuthState() {
+    var form = document.querySelector(".formlog");
+    var box = document.getElementById("userbox");
+    if (form && box) {
+        if (window.cmMe) {
+            form.style.display = "none";
+            box.style.display = "";
+            var un = box.querySelector(".uname");
+            if (un) un.textContent = window.cmMe.name;
+        } else {
+            form.style.display = "";
+            box.style.display = "none";
+        }
+    }
+    var nm = document.getElementById("composer-name");
+    if (nm) {
+        if (window.cmMe) { nm.value = window.cmMe.name; nm.disabled = true; }
+        else nm.disabled = false;
+    }
+    if (typeof window.refreshFeedDelete === "function") window.refreshFeedDelete();
+}
+function cmRefreshMe() {
+    if (!cmGetToken()) { window.cmMe = null; renderAuthState(); return; }
+    fetch("/api/auth/me", { headers: cmAuthHeaders() }).then(function(res) {
+        return res.json().then(function(j) {
+            if (!res.ok || !j || !j.user) throw new Error("no session");
+            return j.user;
+        });
+    }).then(function(u) {
+        window.cmMe = u;
+        renderAuthState();
+    }).catch(function() {
+        window.cmMe = null;
+        renderAuthState();
+    });
+}
+function cmAuthPost(url, body) {
+    return fetch(url, {
+        method: "POST",
+        headers: cmAuthHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(body)
+    }).then(function(res) {
+        return res.json().then(function(j) {
+            if (!res.ok || !j) throw new Error((j && j.error) || "request failed");
+            return j;
+        });
+    });
+}
+var loginFormEl = document.querySelector(".formlog");
+if (loginFormEl) loginFormEl.addEventListener("submit", function(e) {
+    e.preventDefault();
+    var u = document.getElementById("username");
+    var p = document.getElementById("password");
+    var msg = document.getElementById("auth-msg");
+    var name = u ? u.value.trim() : "";
+    var pass = p ? p.value : "";
+    if (!name || !pass) { if (msg) msg.textContent = "Enter name + password."; return; }
+    cmAuthPost("/api/auth/login", { name: name, password: pass }).then(function(j) {
+        if (!j.token) throw new Error("Login failed.");
+        cmSetToken(j.token);
+        window.cmMe = j.user;
+        if (p) p.value = "";
+        if (msg) msg.textContent = "";
+        renderAuthState();
+    }).catch(function(err) { if (msg) msg.textContent = err.message; });
+});
+var registerBtnEl = document.getElementById("registertbtn");
+if (registerBtnEl) registerBtnEl.addEventListener("click", function() {
+    var u = document.getElementById("username");
+    var p = document.getElementById("password");
+    var msg = document.getElementById("auth-msg");
+    var name = u ? u.value.trim() : "";
+    var pass = p ? p.value : "";
+    if (!name || !pass) { if (msg) msg.textContent = "Enter name + password."; return; }
+    cmAuthPost("/api/auth/register", { name: name, password: pass }).then(function(j) {
+        if (!j.token) throw new Error("Register failed.");
+        cmSetToken(j.token);
+        window.cmMe = j.user;
+        if (p) p.value = "";
+        if (msg) msg.textContent = "";
+        renderAuthState();
+    }).catch(function(err) { if (msg) msg.textContent = err.message; });
+});
+var logoutBtnEl = document.getElementById("logoutbtn");
+if (logoutBtnEl) logoutBtnEl.addEventListener("click", function() {
+    var t = cmGetToken();
+    cmSetToken(null);
+    window.cmMe = null;
+    renderAuthState();
+    if (t) fetch("/api/auth/logout", { method: "POST", headers: { "Authorization": "Bearer " + t } }).catch(function() {});
+});
+cmRefreshMe();
+
 
 document.addEventListener("DOMContentLoaded", () => {
     const banner = document.getElementById("header");
@@ -366,6 +476,50 @@ document.addEventListener("DOMContentLoaded", function() {
                 return Array.isArray(all) ? all.length : 0;
             } catch (e) { return 0; }
         }
+        window.attachFeedDelete = function(wrap) {
+            var d = wrap._d;
+            if (!d) return;
+            var mBtnRef = wrap.querySelector(".post-menu-btn");
+            if (!mBtnRef || wrap.querySelector(".post-del")) return;
+            if (!(isMine(d.id) || (d.user_id && window.cmMe && d.user_id === window.cmMe.id))) return;
+            var del = document.createElement("button");
+            del.type = "button";
+            del.className = "post-del";
+            del.textContent = "delete";
+            del.addEventListener("click", function(e) {
+                e.preventDefault();
+                if (!confirm("Delete this post?")) return;
+                function forgetLocal() {
+                    try {
+                        savePosts(getPosts().filter(function(p) { return p.id !== d.id; }));
+                        var th = getThreads();
+                        delete th[d.id];
+                        localStorage.setItem("cm-user-threads", JSON.stringify(th));
+                        localStorage.removeItem("cm-thread-replies-" + d.id);
+                        var mine = [];
+                        try { mine = JSON.parse(localStorage.getItem("cm-my-posts") || "[]"); } catch (e2) {}
+                        localStorage.setItem("cm-my-posts", JSON.stringify(mine.filter(function(x) { return x !== d.id; })));
+                    } catch (e2) {}
+                    wrap.remove();
+                }
+                var isLocal = getPosts().some(function(p) { return p && p.id === d.id; });
+                if (isLocal) { forgetLocal(); return; }
+                fetch("/api/threads/" + encodeURIComponent(d.id), {
+                    method: "DELETE",
+                    headers: cmAuthHeaders()
+                }).then(function(res) {
+                    return res.json().then(function(j) {
+                        if (!res.ok || !j || j.success !== true) throw new Error((j && j.error) || "delete failed");
+                    });
+                }).then(function() { forgetLocal(); }, function(err) { alert("Delete failed (" + (err && err.message ? err.message : "server unreachable") + ")."); });
+            });
+            wrap.insertBefore(del, mBtnRef);
+        };
+        window.refreshFeedDelete = function() {
+            document.querySelectorAll(".threads .n2 .community-post").forEach(function(w) {
+                if (w._d) window.attachFeedDelete(w);
+            });
+        };
         function buildPost(d) {
             var uid = "m" + d.id;
             var wrap = document.createElement("div");
@@ -421,38 +575,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     bar.replaceWith(wrap);
                 });
             });
-            var mBtnRef = wrap.querySelector(".post-menu-btn");
-            if (mBtnRef && isMine(d.id)) {
-                var del = document.createElement("button");
-                del.type = "button";
-                del.className = "post-del";
-                del.textContent = "delete";
-                del.addEventListener("click", function(e) {
-                    e.preventDefault();
-                    if (!confirm("Delete this post?")) return;
-                    function forgetLocal() {
-                        try {
-                            savePosts(getPosts().filter(function(p) { return p.id !== d.id; }));
-                            var th = getThreads();
-                            delete th[d.id];
-                            localStorage.setItem("cm-user-threads", JSON.stringify(th));
-                            localStorage.removeItem("cm-thread-replies-" + d.id);
-                            var mine = [];
-                            try { mine = JSON.parse(localStorage.getItem("cm-my-posts") || "[]"); } catch (e2) {}
-                            localStorage.setItem("cm-my-posts", JSON.stringify(mine.filter(function(x) { return x !== d.id; })));
-                        } catch (e2) {}
-                        wrap.remove();
-                    }
-                    var isLocal = getPosts().some(function(p) { return p && p.id === d.id; });
-                    if (isLocal) { forgetLocal(); return; }
-                    fetch("/api/threads/" + encodeURIComponent(d.id), { method: "DELETE" }).then(function(res) {
-                        return res.json().then(function(j) {
-                            if (!res.ok || !j || j.success !== true) throw new Error((j && j.error) || "delete failed");
-                        });
-                    }).then(function() { forgetLocal(); }, function() { alert("Delete failed (server unreachable)."); });
-                });
-                wrap.insertBefore(del, mBtnRef);
-            }
+            wrap._d = d;
+            wrap.setAttribute("data-uid", d.user_id || "");
+            window.attachFeedDelete(wrap);
             var tagEl = wrap.querySelector(".tag");
             if (tagEl) tagEl.addEventListener("click", function() {
                 var sb = document.querySelector("#search");
@@ -495,7 +620,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     avatar: "assets/Cpezc.png",
                     time: fmtFeedTime(t.created_at),
                     images: t.images || [],
-                    replies: t.replies || 0
+                    replies: t.replies || 0,
+                    user_id: t.user_id || null
                 });
                 node.setAttribute("data-thread-node", t.id);
                 var link = node.querySelector(".post-action-link");
@@ -599,7 +725,7 @@ document.addEventListener("DOMContentLoaded", function() {
             function publish() {
                 fetch("/api/threads", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: cmAuthHeaders({ "Content-Type": "application/json" }),
                     body: JSON.stringify({ board: "c", author: d.name, text: text, images: d.images })
                 }).then(function(res) {
                     return res.json().then(function(j) {

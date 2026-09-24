@@ -100,6 +100,112 @@ function cmDeriveTitle() {
         return null;
     }
     var cmTid = cmGetTid();
+    window.cmMe = null;
+    function cmAuthHeaders(extra) {
+        var h = extra || {};
+        var t = null;
+        try { t = localStorage.getItem("cm-session"); } catch (e) {}
+        if (t) h["Authorization"] = "Bearer " + t;
+        return h;
+    }
+    function cmRenderAuthState() {
+        var form = document.querySelector(".formlog");
+        var box = document.getElementById("userbox");
+        if (form && box) {
+            if (window.cmMe) {
+                form.style.display = "none";
+                box.style.display = "";
+                var un = box.querySelector(".uname");
+                if (un) un.textContent = window.cmMe.name;
+            } else {
+                form.style.display = "";
+                box.style.display = "none";
+            }
+        }
+        var nm = document.getElementById("cm-quick-name");
+        if (nm) {
+            if (window.cmMe) { nm.value = window.cmMe.name; nm.disabled = true; }
+            else nm.disabled = false;
+        }
+        document.querySelectorAll(".cm-op, .cm-reply").forEach(function(p) {
+            if (typeof cmWirePost === "function") cmWirePost(p);
+        });
+    }
+    function cmAuthPost(url, body) {
+        return fetch(url, {
+            method: "POST",
+            headers: cmAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify(body)
+        }).then(function(res) {
+            return res.json().then(function(j) {
+                if (!res.ok || !j) throw new Error((j && j.error) || "request failed");
+                return j;
+            });
+        });
+    }
+    var cmLoginForm = document.querySelector(".formlog");
+    if (cmLoginForm) cmLoginForm.addEventListener("submit", function(e) {
+        e.preventDefault();
+        var u = document.getElementById("username");
+        var p = document.getElementById("password");
+        var msg = document.getElementById("auth-msg");
+        var name = u ? u.value.trim() : "";
+        var pass = p ? p.value : "";
+        if (!name || !pass) { if (msg) msg.textContent = "Enter name + password."; return; }
+        cmAuthPost("/api/auth/login", { name: name, password: pass }).then(function(j) {
+            if (!j.token) throw new Error("Login failed.");
+            try { localStorage.setItem("cm-session", j.token); } catch (e) {}
+            window.cmMe = j.user;
+            if (p) p.value = "";
+            if (msg) msg.textContent = "";
+            cmRenderAuthState();
+        }).catch(function(err) { if (msg) msg.textContent = err.message; });
+    });
+    var cmRegisterBtn = document.getElementById("registertbtn");
+    if (cmRegisterBtn) cmRegisterBtn.addEventListener("click", function() {
+        var u = document.getElementById("username");
+        var p = document.getElementById("password");
+        var msg = document.getElementById("auth-msg");
+        var name = u ? u.value.trim() : "";
+        var pass = p ? p.value : "";
+        if (!name || !pass) { if (msg) msg.textContent = "Enter name + password."; return; }
+        cmAuthPost("/api/auth/register", { name: name, password: pass }).then(function(j) {
+            if (!j.token) throw new Error("Register failed.");
+            try { localStorage.setItem("cm-session", j.token); } catch (e) {}
+            window.cmMe = j.user;
+            if (p) p.value = "";
+            if (msg) msg.textContent = "";
+            cmRenderAuthState();
+        }).catch(function(err) { if (msg) msg.textContent = err.message; });
+    });
+    var cmLogoutBtn = document.getElementById("logoutbtn");
+    if (cmLogoutBtn) cmLogoutBtn.addEventListener("click", function() {
+        var t = null;
+        try {
+            t = localStorage.getItem("cm-session");
+            localStorage.removeItem("cm-session");
+        } catch (e) {}
+        window.cmMe = null;
+        cmRenderAuthState();
+        if (t) fetch("/api/auth/logout", { method: "POST", headers: { "Authorization": "Bearer " + t } }).catch(function() {});
+    });
+    (function cmInitMe() {
+        var t = null;
+        try { t = localStorage.getItem("cm-session"); } catch (e) {}
+        if (!t) { cmRenderAuthState(); return; }
+        fetch("/api/auth/me", { headers: cmAuthHeaders() }).then(function(res) {
+            return res.json().then(function(j) {
+                if (!res.ok || !j || !j.user) throw new Error("no session");
+                return j.user;
+            });
+        }).then(function(u) {
+            window.cmMe = u;
+            cmRenderAuthState();
+        }, function() {
+            window.cmMe = null;
+            cmRenderAuthState();
+        });
+    })();
     function cmThreadReplies(tid) {
         try {
             var all = JSON.parse(localStorage.getItem("cm-thread-replies-" + tid) || "[]");
@@ -148,6 +254,7 @@ function cmDeriveTitle() {
             '</div><div class="cm-op-text">' + paras + '</div>' +
             '<span class="cm-count"><img src="assets/icon-comment.svg" alt="comments"> 0</span></div>' +
             '<div class="cm-rlinks"><a href="#">#report</a></div>';
+        div.setAttribute("data-uid", t.user_id || "");
         return div;
     }
     function cmBuildReply(r) {
@@ -173,6 +280,7 @@ function cmDeriveTitle() {
             });
             div.querySelector(".cm-rlinks").insertAdjacentElement("beforebegin", im);
         });
+        div.setAttribute("data-uid", r.user_id || "");
         return div;
     }
     function cmUpdateOpCount(n) {
@@ -203,7 +311,8 @@ function cmDeriveTitle() {
             text: r.text || "",
             images: r.images || [],
             time: r.time || (r.created_at ? cmFmtTime(r.created_at) : "just now"),
-            avatar: r.avatar || "assets/Cpezc.png"
+            avatar: r.avatar || "assets/Cpezc.png",
+            user_id: r.user_id || null
         };
     }
     function cmRenderRepliesFrom(all) {
@@ -302,7 +411,8 @@ function cmDeriveTitle() {
             });
         }
         var prev = cnt && cnt.previousElementSibling;
-        if (cnt && cmIsMine(id) && (!prev || (prev.className || "").indexOf("cm-del") === -1)) {
+        var uid = post.getAttribute("data-uid");
+        if (cnt && (cmIsMine(id) || (uid && window.cmMe && uid === window.cmMe.id)) && (!prev || (prev.className || "").indexOf("cm-del") === -1)) {
             var del = document.createElement("button");
             del.type = "button";
             del.className = "cm-del";
@@ -321,7 +431,7 @@ function cmDeriveTitle() {
                 if (isLocal) { forgetLocal(); return; }
                 fetch("/api/threads/" + encodeURIComponent(cmTid) + "/replies", {
                     method: "DELETE",
-                    headers: { "Content-Type": "application/json" },
+                    headers: cmAuthHeaders({ "Content-Type": "application/json" }),
                     body: JSON.stringify({ id: rid })
                 }).then(function(res) {
                     return res.json().then(function(j) {
@@ -432,7 +542,7 @@ function cmDeriveTitle() {
             var payload = { author: name, text: text, images: imgs };
             cmApi("/api/threads/" + encodeURIComponent(cmTid) + "/replies", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: cmAuthHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify(payload)
             }).then(function(j) {
                 cmClaimPost(j.reply.id);

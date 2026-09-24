@@ -690,6 +690,38 @@ body {
     gap: 6px;
     padding: 4px;
 }
+#userbox{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    font-size: 12px;
+}
+#userbox .uname{
+    font-weight: bold;
+    color: #a81c07;
+}
+#logoutbtn, #registertbtn{
+    background: transparent;
+    border: none;
+    color: #800000;
+    font-family: monospace, sans-serif;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+#logoutbtn:hover, #registertbtn:hover{
+    color: #d00000;
+    text-decoration: underline;
+}
+#auth-msg{
+    font-size: 11px;
+    color: #d00000;
+    min-height: 14px;
+    text-align: center;
+}
 
 
 .col1, .col2, .col3, .col4, .col6, .col5{

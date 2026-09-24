@@ -403,6 +403,64 @@ document.addEventListener("DOMContentLoaded", function() {
     } catch (e) {}
 })();
 
+// Likes: one toggle per browser (localStorage), counts shared via API
+(function postLikes() {
+    function likedSet() {
+        try {
+            var a = JSON.parse(localStorage.getItem("cm-liked") || "[]");
+            return Array.isArray(a) ? a : [];
+        } catch (e) { return []; }
+    }
+    function setLiked(id, on) {
+        try {
+            var a = likedSet().filter(function(x) { return x !== id; });
+            if (on) a.push(id);
+            localStorage.setItem("cm-liked", JSON.stringify(a));
+        } catch (e) {}
+    }
+    function paint(btn, n, on) {
+        var img = btn.querySelector("img");
+        btn.innerHTML = "";
+        if (img) btn.appendChild(img);
+        btn.appendChild(document.createTextNode(" " + n));
+        if (on) btn.classList.add("liked");
+        else btn.classList.remove("liked");
+    }
+    function refresh(btn) {
+        var tid = btn.getAttribute("data-tid");
+        if (!tid) return;
+        fetch("/api/likes?target_id=" + encodeURIComponent(tid)).then(function(res) {
+            return res.json().then(function(j) {
+                if (!res.ok || !j || typeof j.count !== "number") throw new Error("likes failed");
+                paint(btn, j.count, likedSet().indexOf(tid) !== -1);
+            });
+        }).catch(function() {
+            paint(btn, parseInt((btn.textContent || "0").replace(/\D/g, ""), 10) || 0, likedSet().indexOf(tid) !== -1);
+        });
+    }
+    document.querySelectorAll(".like-btn").forEach(refresh);
+    document.addEventListener("click", function(e) {
+        var btn = e.target.closest ? e.target.closest(".like-btn") : null;
+        if (!btn || !btn.isConnected) return;
+        var tid = btn.getAttribute("data-tid");
+        if (!tid) return;
+        e.preventDefault();
+        var on = likedSet().indexOf(tid) === -1;
+        var url = "/api/likes" + (on ? "" : "?target_id=" + encodeURIComponent(tid));
+        fetch(url, {
+            method: on ? "POST" : "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: on ? JSON.stringify({ target_id: tid }) : undefined
+        }).then(function(res) {
+            return res.json().then(function(j) {
+                if (!res.ok || !j || typeof j.count !== "number") throw new Error("likes failed");
+                setLiked(tid, on);
+                paint(btn, j.count, on);
+            });
+        }).catch(function() {});
+    });
+})();
+
 // Composer avatar: pickable picture, persisted in localStorage (real avatar comes with login later)
 (function composerAvatar() {
     try {
@@ -542,7 +600,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 '<div class="post-actions">' +
                 '<a href="comments.html?id=' + d.id + '" class="post-action-link"><img src="assets/icon-comment.svg" alt="comments"> ' + replyCount(d.id) + '</a>' +
                 '<span><img src="assets/icon-share.svg" alt="shares"> 0</span>' +
-                '<span><img src="assets/icon-like.svg" alt="likes"> 0</span>' +
+                '<span class="like-btn" data-tid="' + d.id + '"><img src="assets/icon-like.svg" alt="likes"> 0</span>' +
                 '</div></div>';
             var mBtn = wrap.querySelector("#post-menu-btn-" + uid);
             var menu = wrap.querySelector("#post-menu-" + uid);
@@ -629,6 +687,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     link.lastChild.textContent = " " + (t.replies || 0);
                     link.setAttribute("data-synced", "1");
                 }
+                var likeBtn = node.querySelector(".like-btn");
+                if (likeBtn && likeBtn.lastChild) likeBtn.lastChild.textContent = " " + (t.likes || 0);
                 feed.insertBefore(node, feed.firstChild);
             });
         }).catch(function() {});

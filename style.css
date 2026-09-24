@@ -346,6 +346,10 @@ body {
     align-items: center;
     gap: 4px;
 }
+.post-actions .like-btn.liked{
+    color: #d00000;
+    font-weight: bold;
+}
 .post-actions img{
     width: 16px;
     height: 16px;

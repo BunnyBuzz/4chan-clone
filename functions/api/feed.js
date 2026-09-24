@@ -11,12 +11,13 @@ export async function onRequestGet(context) {
 
     const rows = await context.env.DB.prepare(
       'SELECT t.id, t.board, t.author, t.user_id, t.text, t.images, t.created_at, ' +
-      '(SELECT COUNT(*) FROM replies r WHERE r.thread_id = t.id) AS replies ' +
+      '(SELECT COUNT(*) FROM replies r WHERE r.thread_id = t.id) AS replies, ' +
+      '(SELECT count FROM likes l WHERE l.target_id = t.id) AS likes ' +
       'FROM threads t WHERE t.board = ? ORDER BY t.created_at DESC LIMIT ?'
     ).bind(board, limit).all();
 
     return json({
-      threads: (rows.results || []).map((r) => ({ ...threadRow(r), replies: r.replies }))
+      threads: (rows.results || []).map((r) => ({ ...threadRow(r), replies: r.replies, likes: r.likes || 0 }))
     });
   } catch (e) {
     return json({ error: e.message }, 500);

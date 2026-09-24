@@ -217,7 +217,7 @@ body {
     margin-left: auto;
 }
 .user-avatar {
-  width: 36px;
+  width: 60px;
   height: 36px;
   border-radius: 0;
   border: 1px solid #e8d0be;
@@ -694,7 +694,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    align-self: stretch;
     gap: 6px;
+    margin: -10px;
     padding: 0;
     font-size: 12px;
 }

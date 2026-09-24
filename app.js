@@ -461,6 +461,41 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 })();
 
+// Share: copy the post's thread link to clipboard
+(function postShare() {
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text).then(function() { return true; }, function() { return false; });
+        }
+        return new Promise(function(resolve) {
+            try {
+                var ta = document.createElement("textarea");
+                ta.value = text;
+                ta.style.position = "fixed";
+                ta.style.opacity = "0";
+                document.body.appendChild(ta);
+                ta.select();
+                var ok = document.execCommand("copy");
+                ta.remove();
+                resolve(!!ok);
+            } catch (e) { resolve(false); }
+        });
+    }
+    document.addEventListener("click", function(e) {
+        var btn = e.target.closest ? e.target.closest(".share-btn") : null;
+        if (!btn || !btn.isConnected) return;
+        var tid = btn.getAttribute("data-tid");
+        if (!tid) return;
+        e.preventDefault();
+        var url = new URL("comments.html?id=" + tid, location.href).href;
+        var original = btn.innerHTML;
+        copyText(url).then(function(ok) {
+            btn.innerHTML = ok ? "Copied ✓" : "Copy failed";
+            setTimeout(function() { if (btn.isConnected) btn.innerHTML = original; }, 1500);
+        });
+    });
+})();
+
 // Composer avatar: pickable picture, persisted in localStorage (real avatar comes with login later)
 (function composerAvatar() {
     try {
@@ -599,7 +634,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 '<div class="post-images">' + imgsHtml + '</div>' +
                 '<div class="post-actions">' +
                 '<a href="comments.html?id=' + d.id + '" class="post-action-link"><img src="assets/icon-comment.svg" alt="comments"> ' + replyCount(d.id) + '</a>' +
-                '<span><img src="assets/icon-share.svg" alt="shares"> 0</span>' +
+                '<span class="share-btn" data-tid="' + d.id + '"><img src="assets/icon-share.svg" alt="shares"> 0</span>' +
                 '<span class="like-btn" data-tid="' + d.id + '"><img src="assets/icon-like.svg" alt="likes"> 0</span>' +
                 '</div></div>';
             var mBtn = wrap.querySelector("#post-menu-btn-" + uid);

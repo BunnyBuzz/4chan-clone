@@ -1,0 +1,267 @@
+/* Comments / thread page only (comments.html). Shared site styles stay in style.css. */
+.cm-page{
+    font-family: monospace, sans-serif;
+}
+.cm-crumb{
+    font-size: 12px;
+    margin: 0 0 8px 10px;
+    color: #800;
+}
+.cm-panel{
+    margin-left: 10px;
+    width: 825px;
+    max-width: 100%;
+    border: 1px solid #a08060;
+    background: #fff;
+    box-sizing: border-box;
+}
+.cm-threadbar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: #ffccaa;
+    border-bottom: 1px solid #a08060;
+    padding: 6px 10px;
+    font-weight: bold;
+    font-size: 13px;
+}
+.cm-threadbar button{
+    border: 1px solid #a08060;
+    background: #fff;
+    color: #800;
+    font-family: monospace, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 3px 10px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.cm-op{
+    padding: 10px;
+    border-bottom: 1px solid #e8d0be;
+}
+.cm-op-user{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+.cm-user{
+    color: #a81c07;
+    font-weight: bold;
+}
+.cm-meta{
+    color: #888;
+    font-size: 11px;
+}
+.cm-op-body{
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+.cm-op-img img{
+    display: block;
+    max-width: 280px;
+    max-height: 260px;
+    border: 1px solid #a08060;
+}
+.cm-op-img img:nth-of-type(n+2){
+    display: none;
+}
+.cm-filename{
+    display: block;
+    font-size: 11px;
+    color: #888;
+    margin-top: 4px;
+}
+.cm-op-text{
+    flex: 1;
+    font-size: 13px;
+}
+.cm-op-text p{
+    margin: 0 0 8px;
+}
+.cm-op-text p, .cm-rbody p{
+    text-align: start;
+}
+.cm-count{
+    font-size: 12px;
+    color: #a05252;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.cm-count:hover{
+    color: #a81c07;
+}
+.cm-del{
+    background: none;
+    border: none;
+    padding: 0;
+    margin-right: 8px;
+    font-size: 11px;
+    font-family: monospace, sans-serif;
+    color: #888;
+    cursor: pointer;
+}
+.cm-del:hover{
+    color: #d00000;
+    text-decoration: underline;
+}
+.cm-rlinks{
+    font-size: 11px;
+    color: #888;
+    margin-top: 6px;
+}
+.cm-reply{
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    border-bottom: 1px solid #e8d0be;
+}
+.cm-avatar{
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border: 1px solid #a08060;
+    flex-shrink: 0;
+}
+.cm-rbody{
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+}
+.cm-rbody p{
+    margin: 4px 0;
+}
+.cm-rhead{
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+}
+.cm-rhead .cm-count{
+    margin-left: auto;
+}
+.cm-quote{
+    color: #a81c07;
+    font-size: 12px;
+    margin-top: 4px;
+}
+.cm-quote a{
+    color: #a81c07;
+}
+.cm-empty{
+    padding: 16px 10px;
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+}
+.cm-rimg{
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 320px;
+    border: 1px solid #e8d0be;
+    border-radius: 8px;
+    margin: 4px 0 8px;
+    cursor: zoom-in;
+}
+.cm-flash{
+    animation: cmflash 1.6s;
+}
+@keyframes cmflash{
+    0%{ background: #ffe08a; }
+    100%{ background: transparent; }
+}
+.cm-quick-namerow{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px 0;
+    font-size: 12px;
+    font-weight: bold;
+}
+.cm-quick-namerow input{
+    flex: 1;
+    min-width: 0;
+    border: 1px solid #a08060;
+    background: #fff;
+    padding: 4px 6px;
+    font-size: 12px;
+    font-family: monospace, sans-serif;
+    outline: none;
+}
+.cm-quick{
+    border-top: 1px solid #a08060;
+}
+.cm-quick-title{
+    background: #ffccaa;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: bold;
+}
+.cm-quick textarea{
+    width: calc(100% - 20px);
+    box-sizing: border-box;
+    border: 1px solid #a08060;
+    background: #fff;
+    margin: 8px 10px 0;
+    padding: 8px;
+    font-size: 13px;
+    font-family: monospace, sans-serif;
+    color: #333;
+    resize: vertical;
+    outline: none;
+}
+.cm-quick-foot{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    font-size: 12px;
+}
+.cm-quick-foot input{
+    font-size: 11px;
+    font-family: monospace, sans-serif;
+}
+.cm-quick-foot button{
+    background: #a81c07;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.cm-count img{
+    width: 16px;
+    height: 16px;
+    vertical-align: -3px;
+}
+#cm-images-container{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+}
+#cm-images-container img{
+    max-height: 40px;
+    width: auto;
+    border: 1px solid #a08060;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.cm-op-img img{
+    cursor: zoom-in;
+}
+@media (max-width: 900px){
+    .cm-op-body{
+        flex-direction: column;
+    }
+}

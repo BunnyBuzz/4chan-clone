@@ -57,3 +57,29 @@ export async function onRequestPost(context) {
     return json({ error: e.message }, 500);
   }
 }
+
+export async function onRequestDelete(context) {
+  try {
+    const db = getDb(context.env);
+    if (!db) return json({ error: 'DB not bound.' }, 500);
+
+    const threadId = context.params.id;
+    let rid = new URL(context.request.url).searchParams.get('id');
+    if (!rid) {
+      try { rid = (await context.request.json()).id; } catch (e) {}
+    }
+    if (!rid) return json({ error: 'Reply id required.' }, 400);
+
+    const r = await db
+      .prepare('SELECT id FROM replies WHERE id = ? AND thread_id = ?')
+      .bind(String(rid), threadId)
+      .first();
+    if (!r) return json({ error: 'Reply not found.' }, 404);
+
+    await db.prepare('DELETE FROM replies WHERE id = ?').bind(String(rid)).run();
+
+    return json({ success: true });
+  } catch (e) {
+    return json({ error: e.message }, 500);
+  }
+}

@@ -349,6 +349,17 @@ document.addEventListener("DOMContentLoaded", function() {
                 return (o && typeof o === "object") ? o : {};
             } catch (e) { return {}; }
         }
+        function isMine(id) {
+            try { return (JSON.parse(localStorage.getItem("cm-my-posts") || "[]")).indexOf(id) !== -1; }
+            catch (e) { return false; }
+        }
+        function claimId(id) {
+            try {
+                var list = JSON.parse(localStorage.getItem("cm-my-posts") || "[]");
+                if (list.indexOf(id) === -1) list.push(id);
+                localStorage.setItem("cm-my-posts", JSON.stringify(list));
+            } catch (e) {}
+        }
         function replyCount(tid) {
             try {
                 var all = JSON.parse(localStorage.getItem("cm-thread-replies-" + tid) || "[]");
@@ -411,7 +422,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
             });
             var mBtnRef = wrap.querySelector(".post-menu-btn");
-            if (mBtnRef) {
+            if (mBtnRef && isMine(d.id)) {
                 var del = document.createElement("button");
                 del.type = "button";
                 del.className = "post-del";
@@ -419,17 +430,26 @@ document.addEventListener("DOMContentLoaded", function() {
                 del.addEventListener("click", function(e) {
                     e.preventDefault();
                     if (!confirm("Delete this post?")) return;
-                    try {
-                        savePosts(getPosts().filter(function(p) { return p.id !== d.id; }));
-                        var th = getThreads();
-                        delete th[d.id];
-                        localStorage.setItem("cm-user-threads", JSON.stringify(th));
-                        localStorage.removeItem("cm-thread-replies-" + d.id);
-                        var mine = [];
-                        try { mine = JSON.parse(localStorage.getItem("cm-my-posts") || "[]"); } catch (e2) {}
-                        localStorage.setItem("cm-my-posts", JSON.stringify(mine.filter(function(x) { return x !== d.id; })));
-                    } catch (e2) {}
-                    wrap.remove();
+                    function forgetLocal() {
+                        try {
+                            savePosts(getPosts().filter(function(p) { return p.id !== d.id; }));
+                            var th = getThreads();
+                            delete th[d.id];
+                            localStorage.setItem("cm-user-threads", JSON.stringify(th));
+                            localStorage.removeItem("cm-thread-replies-" + d.id);
+                            var mine = [];
+                            try { mine = JSON.parse(localStorage.getItem("cm-my-posts") || "[]"); } catch (e2) {}
+                            localStorage.setItem("cm-my-posts", JSON.stringify(mine.filter(function(x) { return x !== d.id; })));
+                        } catch (e2) {}
+                        wrap.remove();
+                    }
+                    var isLocal = getPosts().some(function(p) { return p && p.id === d.id; });
+                    if (isLocal) { forgetLocal(); return; }
+                    fetch("/api/threads/" + encodeURIComponent(d.id), { method: "DELETE" }).then(function(res) {
+                        return res.json().then(function(j) {
+                            if (!res.ok || !j || j.success !== true) throw new Error((j && j.error) || "delete failed");
+                        });
+                    }).then(function() { forgetLocal(); }, function() { alert("Delete failed (server unreachable)."); });
                 });
                 wrap.insertBefore(del, mBtnRef);
             }
@@ -444,6 +464,8 @@ document.addEventListener("DOMContentLoaded", function() {
             return wrap;
         }
 
+        getPosts().forEach(function(p) { if (p && p.id) claimId(p.id); });
+        Object.keys(getThreads()).forEach(function(k) { claimId(k); });
         getPosts().slice().reverse().forEach(function(d) {
             feed.insertBefore(buildPost(d), feed.firstChild);
         });
@@ -548,6 +570,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 textInput.focus();
             }
             function publishLocal() {
+                claimId(d.id);
                 threads[d.id] = { id: d.id, author: d.name, time: d.time, avatar: d.avatar, images: d.images.slice(), text: text };
                 var ok = true;
                 try {
@@ -584,6 +607,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         return j.thread;
                     });
                 }).then(function(t) {
+                    claimId(t.id);
                     feed.insertBefore(buildPost({
                         id: t.id, name: t.author, tag: d.tag, text: t.text,
                         avatar: d.avatar, time: "just now", images: t.images, replies: 0

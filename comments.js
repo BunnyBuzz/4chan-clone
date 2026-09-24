@@ -310,12 +310,27 @@ function cmDeriveTitle() {
             del.addEventListener("click", function() {
                 if (!confirm("Delete this post?")) return;
                 var rid = post.getAttribute("data-rid");
-                if (rid && cmTid) {
+                if (!rid) { post.remove(); return; }
+                var isLocal = cmThreadReplies(cmTid).some(function(r) { return r && r.id === rid; });
+                function forgetLocal() {
                     var kept = cmThreadReplies(cmTid).filter(function(r) { return r.id !== rid; });
                     try { localStorage.setItem("cm-thread-replies-" + cmTid, JSON.stringify(kept)); } catch (e) {}
                     cmUpdateOpCount(kept.length);
+                    post.remove();
                 }
-                post.remove();
+                if (isLocal) { forgetLocal(); return; }
+                fetch("/api/threads/" + encodeURIComponent(cmTid) + "/replies", {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: rid })
+                }).then(function(res) {
+                    return res.json().then(function(j) {
+                        if (!res.ok || !j || j.success !== true) throw new Error((j && j.error) || "delete failed");
+                    });
+                }).then(function() {
+                    post.remove();
+                    cmRenderAll();
+                }, function() { alert("Delete failed (server unreachable)."); });
             });
             cnt.parentNode.insertBefore(del, cnt);
         }

@@ -22,3 +22,21 @@ export async function onRequestGet(context) {
     return json({ error: e.message }, 500);
   }
 }
+
+export async function onRequestDelete(context) {
+  try {
+    const db = getDb(context.env);
+    if (!db) return json({ error: 'DB not bound.' }, 500);
+
+    const id = context.params.id;
+    const t = await db.prepare('SELECT id FROM threads WHERE id = ?').bind(id).first();
+    if (!t) return json({ error: 'Thread not found.' }, 404);
+
+    await db.prepare('DELETE FROM replies WHERE thread_id = ?').bind(id).run();
+    await db.prepare('DELETE FROM threads WHERE id = ?').bind(id).run();
+
+    return json({ success: true });
+  } catch (e) {
+    return json({ error: e.message }, 500);
+  }
+}

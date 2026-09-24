@@ -728,8 +728,10 @@ body {
 #auth-msg{
     font-size: 11px;
     color: #d00000;
-    min-height: 14px;
     text-align: center;
+}
+#auth-msg:empty{
+    display: none;
 }
 
 

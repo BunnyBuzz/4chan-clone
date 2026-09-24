@@ -10,7 +10,7 @@ export async function onRequestGet(context) {
     const limit = Math.min(parseInt(params.get('limit') || '30', 10) || 30, 100);
 
     const rows = await context.env.DB.prepare(
-      'SELECT t.id, t.board, t.author, t.text, t.images, t.created_at, ' +
+      'SELECT t.id, t.board, t.author, t.user_id, t.text, t.images, t.created_at, ' +
       '(SELECT COUNT(*) FROM replies r WHERE r.thread_id = t.id) AS replies ' +
       'FROM threads t WHERE t.board = ? ORDER BY t.created_at DESC LIMIT ?'
     ).bind(board, limit).all();

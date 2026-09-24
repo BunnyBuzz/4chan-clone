@@ -1,4 +1,5 @@
 import { json, getDb, newId, replyRow } from '../../_db.js';
+import { sessionUser } from '../../_auth.js';
 
 export async function onRequestGet(context) {
   try {
@@ -22,6 +23,7 @@ export async function onRequestPost(context) {
     if (!db) return json({ error: 'DB not bound.' }, 500);
 
     const threadId = context.params.id;
+    const me = await sessionUser(db, context.request);
     const parent = await db.prepare('SELECT id FROM threads WHERE id = ?').bind(threadId).first();
     if (!parent) return json({ error: 'Thread not found.' }, 404);
 
@@ -32,7 +34,9 @@ export async function onRequestPost(context) {
       return json({ error: 'Invalid JSON.' }, 400);
     }
 
-    const author = (String(body.author || 'Anonymous').trim() || 'Anonymous').slice(0, 30);
+    const author = me
+      ? me.name
+      : (String(body.author || 'Anonymous').trim() || 'Anonymous').slice(0, 30);
     const text = String(body.text || '').trim();
     const images = Array.isArray(body.images)
       ? body.images.filter((u) => typeof u === 'string' && u.startsWith('http')).slice(0, 4)
@@ -45,12 +49,12 @@ export async function onRequestPost(context) {
     const now = Math.floor(Date.now() / 1000);
 
     await db
-      .prepare('INSERT INTO replies (id, thread_id, author, text, images, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(id, threadId, author, text, JSON.stringify(images), now)
+      .prepare('INSERT INTO replies (id, thread_id, author, user_id, text, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, threadId, author, me ? me.id : null, text, JSON.stringify(images), now)
       .run();
 
     return json(
-      { reply: { id, author, text, images, created_at: now } },
+      { reply: { id, author, user_id: me ? me.id : null, text, images, created_at: now } },
       201
     );
   } catch (e) {
@@ -71,10 +75,15 @@ export async function onRequestDelete(context) {
     if (!rid) return json({ error: 'Reply id required.' }, 400);
 
     const r = await db
-      .prepare('SELECT id FROM replies WHERE id = ? AND thread_id = ?')
+      .prepare('SELECT id, user_id FROM replies WHERE id = ? AND thread_id = ?')
       .bind(String(rid), threadId)
       .first();
     if (!r) return json({ error: 'Reply not found.' }, 404);
+
+    const meDel = await sessionUser(db, context.request);
+    if (r.user_id && (!meDel || meDel.id !== r.user_id)) {
+      return json({ error: 'Not yours.' }, 403);
+    }
 
     await db.prepare('DELETE FROM replies WHERE id = ?').bind(String(rid)).run();
 

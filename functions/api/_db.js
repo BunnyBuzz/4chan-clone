@@ -34,6 +34,7 @@ export function threadRow(r) {
     id: r.id,
     board: r.board,
     author: r.author,
+    user_id: r.user_id || null,
     text: r.text,
     images: parseImages(r.images),
     created_at: r.created_at
@@ -44,6 +45,7 @@ export function replyRow(r) {
   return {
     id: r.id,
     author: r.author,
+    user_id: r.user_id || null,
     text: r.text,
     images: parseImages(r.images),
     created_at: r.created_at

@@ -1,4 +1,5 @@
 import { json, getDb, threadRow, replyRow } from '../_db.js';
+import { sessionUser } from '../_auth.js';
 
 export async function onRequestGet(context) {
   try {
@@ -29,8 +30,13 @@ export async function onRequestDelete(context) {
     if (!db) return json({ error: 'DB not bound.' }, 500);
 
     const id = context.params.id;
-    const t = await db.prepare('SELECT id FROM threads WHERE id = ?').bind(id).first();
+    const t = await db.prepare('SELECT id, user_id FROM threads WHERE id = ?').bind(id).first();
     if (!t) return json({ error: 'Thread not found.' }, 404);
+
+    const me = await sessionUser(db, context.request);
+    if (t.user_id && (!me || me.id !== t.user_id)) {
+      return json({ error: 'Not yours.' }, 403);
+    }
 
     await db.prepare('DELETE FROM replies WHERE thread_id = ?').bind(id).run();
     await db.prepare('DELETE FROM threads WHERE id = ?').bind(id).run();

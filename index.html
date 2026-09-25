@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Katsura</title>
+    <link rel="icon" type="image/png" href="assets/favicon.ico">
+</head>
+<body>
+    <header>
+        <div  class="upper">
+            <a href="index.html">
+            <img id="logo" src="assets/katsura-logo.png" alt="404" width="50" height="50"/>
+            </a>
+            <input type="text" id="search" placeholder="Search..." oninput="filterPosts(this.value)">
+        </div>
+    </header>
+    <div class="fullmain"> 
+        <div class="mainsidebar">
+            <div class="board1">
+                <div class="b1">
+                    <h3 class="btitle">Boards</h3>
+                </div>
+                <div class="b2">
+                    <a href="index.html" class="animeboard">» コミュニティ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /c/</a>
+                    <a href="#" class="animeboard">» Anime&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /a/</a>
+                    <a href="#" class="animeboard">» Manga&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  /m/</a>
+                    <a href="#" class="animeboard">» 雑談&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /g/</a>
+                    <a href="#" class="animeboard">» Discussion&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /d/</a>
+                    <a href="#" class="animeboard">» Theories&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /th/</a>
+                    <a href="#" class="animeboard">» News &nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/nws/</a>
+                </div>
+            </div>
+
+
+            <div class="board3">
+                <div class="b31">
+                    <h3 class="board">Login</h3>
+                </div>
+                <div class="b32">
+                    <form class="formlog">
+                        <input type="text" name="user" id="username" placeholder="username" required>
+                        <input type="password" name="password" id="password" placeholder="password" required>
+                        <button  type="submit" id="logintbtn">login</button>
+                        <button type="button" id="registertbtn">register</button>
+                        <div id="auth-msg"></div>
+                    </form>
+                    <div id="userbox" style="display:none;">
+                        <span>Welcome, <span class="uname"></span></span>
+                        <button type="button" id="logoutbtn">logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="middleside">
+            <div class="header" id="header">
+                <p class="h1"> ▸ welcome to the anime board preview — seasonal discussion starts here. Be kind, no spoilers without tags.</p>
+                <span id="close-banner" class="close-btn">x</span>
+            </div>
+
+        <div class="c-postconfig">
+            <label for="avatar-upload" class="pf-avatar-wrap" title="Change avatar">
+                <img src="assets/Cpezc.png" class="pf-avatar" id="composer-avatar" alt="avatar">
+            </label>
+            <input type="file" id="avatar-upload" accept="image/*" hidden>
+            <div class="pf-main">
+            <div class="pf-head">
+                <span>Drop somthing...</span>
+            </div>
+            <div class="pf-body">
+                <div class="pf-row">
+                    <label for="composer-name">Name</label>
+                    <input type="text" id="composer-name" dir="auto" placeholder="Anonymous" maxlength="30">
+                    <input id="composer-tag" dir="auto" class="c-tag" placeholder="# tag (optional)" maxlength="20">
+                </div>
+                <textarea id="composer-text" dir="auto" placeholder="Share something..." maxlength="2000"></textarea>
+                <div class="pf-foot">
+                    <label for="file-upload" class="icon-btn">Add_img</label>
+                    <input type="file" id="file-upload" accept="image/*" multiple hidden>
+                    <div id="images-container"></div>
+                    <span class="pf-right">
+                        <span class="char-count" id="char-count">0/2000</span>
+                        <button class="post-btn" type="button">Post</button>
+                    </span>
+                </div>
+            </div>
+            </div>
+        </div>
+
+            <div class="threads">
+                <div class="n1">
+                    <h3 class="board">Threads</h3>
+                </div>
+                <div class="n2">
+                </div>
+            </div>
+        </div>
+
+
+        <div class="rightside">
+            <div class="board2">
+                <div class="b21">
+                    <h3 class="board">Popular Threads</h3>
+                    <a href="" id="options">options ▼</a>
+                </div>
+                <div class="b22">
+
+                </div>
+            </div>
+            <div class="board5">
+                <div class="b51">
+                    <h3 class="board">Trending tags</h3>
+                </div>
+                <div class="b52">
+
+                </div>
+            </div>
+        </div>
+    </div>
+ 
+
+
+        <div class="footer">
+            <div class="board4">
+                <ul class="col5">
+                    <li><a href="https://4chan.org/">Home</a></li>
+                    <li><a href="https://4chan.org/4channews">News</a></li>
+                    <li><a href="https://blog.4chan.org/">Blog</a></li>
+                    <li><a href="https://www.4chan.org/advertise">FAQ</a></li>
+                    <li><a href="https://www.4chan.org/feedback">Rules</a></li>
+                    <li><a href="https://www.4chan.org/advertise">Support 4chan</a></li>
+                    <li><a href="https://www.4chan.org/feedback">Advertise</a></li>
+                    <li><a href="https://www.4chan.org/feedback">Press</a></li>
+                    <li><a href="https://www.4chan.org/feedback">日本語</a></li>
+                </ul>
+                <br id="gap">
+                <br>
+                <div class="copyright">
+                    <a href="https://4chan.org/faq#what4chan">about</a>
+                    • 
+                    <a href="https://www.4chan.org/feedback">Feedback</a>
+                    • 
+                    <a href="https://4chan.org/legal">Legal</a>
+                    • 
+                    <a href="https://4chan.org/contact">Contact</a>
+                    <br>
+                    <br>
+                </div>
+                <p class="cp">Copyright © 2003-2026 4chan community support LLC. All rights reserved.</p>
+            </div>
+
+
+            <div id="flist">
+                <ul id="ulf">
+                    <li><a href="#" class="fk">Use Frames</a></li>
+                    <li><a href="#" class="fk">Use Catalog</a></li>
+                </ul>
+            </div>
+            <div id="olist">
+                <ul id="ulo">
+                    <li><a href="#" class="fk">Show all content</a></li>
+                    <li><a href="#" class="fk">Show new content only</a></li>
+                </ul>
+            </div>
+        </div>
+    <script src="app.js"></script>
+</body>
+</html>

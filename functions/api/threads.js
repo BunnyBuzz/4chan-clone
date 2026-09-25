@@ -35,7 +35,7 @@ export async function onRequestPost(context) {
       .run();
 
     return json(
-      { thread: { id, board, author, user_id: me ? me.id : null, text, images, created_at: now, replies: 0 } },
+      { thread: { id, board, author, user_id: me ? me.id : null, text, images, created_at: now, replies: 0 }, images_dropped: (Array.isArray(body.images) ? body.images.length : 0) - images.length },
       201
     );
   } catch (e) {

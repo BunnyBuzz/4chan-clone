@@ -364,6 +364,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const view = document.createElement("img");
         view.className = "post-media";
         view.alt = "post image";
+        view.onerror = function() { view.style.display = "none"; };
         const prev = document.createElement("button");
         prev.type = "button";
         prev.className = "pg-arrow pg-prev";
@@ -619,7 +620,7 @@ document.addEventListener("DOMContentLoaded", function() {
             wrap.className = "community-post";
             var tagHtml = d.tag ? ' <span class="tag">#' + esc(String(d.tag).replace(/^#/, "")) + '</span>' : "";
             var imgsHtml = (d.images || []).map(function(src) {
-                return '<img src="' + src + '" class="post-media" alt="post image">';
+                return '<img src="' + src + '" class="post-media" alt="post image" onerror="this.style.display=\'none\'">';
             }).join("");
             wrap.innerHTML =
                 '<img src="' + d.avatar + '" class="c-post-avatar" alt="avatar">' +
@@ -741,7 +742,8 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             postBtn.disabled = true;
             var btnLabel = postBtn.textContent;
-            postBtn.textContent = "Posting…";
+            postBtn.textContent = files.length ? "Uploading…" : "Posting…";
+            var imgIssues = [];
             function unlockBtn() { postBtn.disabled = false; postBtn.textContent = btnLabel; }
             function withTimeout(promise, ms) {
                 return new Promise(function(resolve, reject) {
@@ -756,7 +758,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 name: (nameInput && nameInput.value.trim()) || "Anonymous",
                 tag: (tagInput && tagInput.value.trim()) || "",
                 text: text,
-                avatar: (avatarImg && avatarImg.getAttribute("src")) || "assets/Cpezc.png",
+                avatar: (function() { try { return localStorage.getItem("cm-avatar") || null; } catch (e) { return null; } })() || (avatarImg && avatarImg.getAttribute("src")) || "assets/Cpezc.png",
                 time: "just now",
                 images: []
             };
@@ -838,6 +840,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 clearComposer();
             }
             function publish() {
+                postBtn.textContent = "Posting…";
+                if (imgIssues.length) alert("Image note: " + imgIssues.join("; ") + ".");
                 fetch("/api/threads", {
                     method: "POST",
                     headers: cmAuthHeaders({ "Content-Type": "application/json" }),
@@ -856,18 +860,26 @@ document.addEventListener("DOMContentLoaded", function() {
                     clearComposer();
                 }, function() { publishLocal(); });
             }
+            if (files.length > 4) {
+                alert("Only the first 4 images are kept.");
+                files = files.slice(0, 4);
+            }
             if (!files.length) { publish(); return; }
             var pending = files.length;
             files.forEach(function(f) {
-                processImage(f).then(function(item) {
+                withTimeout(processImage(f), 30000).then(function(item) {
                     if (!item) { if (--pending === 0) publish(); return; }
                     withTimeout(uploadToApi(item), 60000).then(function(url) {
                         d.images.push(url);
                         if (--pending === 0) publish();
                     }, function() {
+                        imgIssues.push("upload failed — local preview only, won't sync");
                         d.images.push(item.local);
                         if (--pending === 0) publish();
                     });
+                }, function() {
+                    imgIssues.push("image processing timed out — skipped");
+                    if (--pending === 0) publish();
                 });
             });
         });

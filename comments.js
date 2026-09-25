@@ -237,7 +237,7 @@ function cmDeriveTitle() {
             '<span class="cm-meta">ID: ' + t.id + '</span>' +
             '<span class="cm-meta">' + cmEscape(t.time || "") + '</span></div>' +
             '<div class="cm-op-body"><div class="cm-op-img">' +
-            (firstImg ? '<img src="' + firstImg + '" alt="Thread image"><span class="cm-filename">' + cmEscape(fname) + '</span>' : '') +
+            (firstImg ? '<img src="' + firstImg + '" alt="Thread image" onerror="this.style.display=\'none\'"><span class="cm-filename">' + cmEscape(fname) + '</span>' : '') +
             '</div><div class="cm-op-text">' + paras + '</div>' +
             '<span class="cm-count"><img src="assets/icon-comment.svg" alt="comments"> 0</span></div>' +
             '<div class="cm-rlinks"><a href="#">#report</a></div>';
@@ -261,6 +261,7 @@ function cmDeriveTitle() {
             im.src = src;
             im.className = "cm-rimg";
             im.alt = "reply image";
+            im.onerror = function() { im.style.display = "none"; };
             im.addEventListener("click", function() {
                 cmLB.querySelector(".lb-img").src = im.src;
                 cmLB.classList.add("open");
@@ -529,6 +530,18 @@ function cmDeriveTitle() {
         var text = box.value.trim();
         var files = cmFiles.slice();
         if ((!text && !files.length) || !cmTid) return;
+        if (files.length > 4) {
+            alert("Only the first 4 images are kept.");
+            files = files.slice(0, 4);
+        }
+        var tooBig = files.filter(function(f) { return f.type === "image/gif" && f.size > 10 * 1024 * 1024; });
+        if (tooBig.length) {
+            alert("GIF over 10MB can't be uploaded — it was removed. The rest will post.");
+            files = files.filter(function(f) { return !(f.type === "image/gif" && f.size > 10 * 1024 * 1024); });
+            if (!text && !files.length) return;
+        }
+        replyBtn.textContent = files.length ? "Uploading…" : "Posting…";
+        var imgIssues = [];
         var tooBig = files.filter(function(f) { return f.type === "image/gif" && f.size > 10 * 1024 * 1024; });
         if (tooBig.length) {
             alert("GIF over 10MB can't be uploaded — it was removed. The rest will post.");
@@ -564,12 +577,14 @@ function cmDeriveTitle() {
             ]);
         }
         function done() {
+            if (imgIssues.length) alert("Image note: " + imgIssues.join("; ") + ".");
             var payload = { author: name, text: text, images: imgs };
-            cmApiWithTimeout("/api/threads/" + encodeURIComponent(cmTid) + "/replies", {
+            cmApi("/api/threads/" + encodeURIComponent(cmTid) + "/replies", {
                 method: "POST",
                 headers: cmAuthHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify(payload)
             }).then(function(j) {
+                if (j.images_dropped > 0) alert(j.images_dropped + " image(s) rejected by server.");
                 cmClaimPost(j.reply.id);
                 cmRenderAll();
                 clearForm();
@@ -596,15 +611,19 @@ function cmDeriveTitle() {
         if (!files.length) { done(); return; }
         var pending = files.length;
         files.forEach(function(f) {
-            cmProcessImage(f).then(function(item) {
+            cmWithTimeout(cmProcessImage(f), 30000).then(function(item) {
                 if (!item) { if (--pending === 0) done(); return; }
                 cmWithTimeout(cmUploadToApi(item), 60000).then(function(url) {
                     imgs.push(url);
                     if (--pending === 0) done();
                 }, function() {
+                    imgIssues.push("upload failed — local preview only, won't sync");
                     imgs.push(item.local);
                     if (--pending === 0) done();
                 });
+            }, function() {
+                imgIssues.push("image processing timed out — skipped");
+                if (--pending === 0) done();
             });
         });
     });

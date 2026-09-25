@@ -54,7 +54,7 @@ export async function onRequestPost(context) {
       .run();
 
     return json(
-      { reply: { id, author, user_id: me ? me.id : null, text, images, created_at: now } },
+      { reply: { id, author, user_id: me ? me.id : null, text, images, created_at: now }, images_dropped: (Array.isArray(body.images) ? body.images.length : 0) - images.length },
       201
     );
   } catch (e) {

@@ -5,8 +5,7 @@
     try {
         var boardNames = { c: "Community", a: "Anime", m: "Manga", d: "Discussion", th: "Theories", g: "General", nws: "News" };
         var boardTag = { c: "/c/", a: "/anime/", m: "/manga/", d: "/discussion/", th: "/theories/", g: "/general/", nws: "/news/" };
-        // /g/ is the mixed board: it shows posts from every board
-        function isMixed() { return board === "g"; }
+        // each board is its own world: only its own posts are ever fetched or shown
         var feedEl = document.querySelector(".bthreads .bn2");
         if (!feedEl) return;
 
@@ -96,18 +95,19 @@
         function firstImage(t) {
             return (t.images && t.images[0]) || "";
         }
-        function tagFor(t) {
-            if (isMixed() && t.board && boardTag[t.board]) return boardTag[t.board];
+        function tagFor() {
             return boardTag[board] || ("/" + board + "/");
         }
         function snippetOf(t) {
             var s = String(t.text || "").trim().replace(/\s+/g, " ");
             return s.length > 140 ? s.slice(0, 140) + "…" : s;
         }
-        function countsFooter(t, replies) {
-            return '<span class="feed-replies" data-tid="' + t.id + '" data-base="' + replies + '">💬 ' + replies + "</span>" +
-                '<span class="feed-views">👁 ' + fmtCount(t.views || 0) + "</span>" +
-                '<span class="like-btn' + (isLikedLocal(t.id) ? " liked" : "") + '" data-tid="' + t.id + '"><img src="assets/icon-like.svg" alt="likes"> ' + (t.likes || 0) + "</span>";
+        function actionsBar(t, replies) {
+            return '<div class="post-actions">' +
+                '<a href="comments.html?id=' + t.id + '" class="post-action-link"><img src="assets/icon-comment.svg" alt="comments"> ' + replies + '</a>' +
+                '<span class="share-btn" data-tid="' + t.id + '"><img src="assets/icon-share.svg" alt="shares"> 0</span>' +
+                '<span class="like-btn' + (isLikedLocal(t.id) ? " liked" : "") + '" data-tid="' + t.id + '"><img src="assets/icon-like.svg" alt="likes"> ' + (t.likes || 0) + "</span>" +
+                "</div>";
         }
         function cardMenu(t) {
             var uid = "b" + t.id;
@@ -195,13 +195,13 @@
             wrap.innerHTML =
                 (img ? '<a href="comments.html?id=' + t.id + '" class="feed-thumb"><img src="' + img + '" class="post-media" alt="post image" onerror="this.style.display=\'none\'"></a>' : "") +
                 '<div class="feed-card-main">' +
-                '<div class="feed-card-top"><span class="board-tag">' + esc(tagFor(t)) + "</span>" +
+                '<div class="feed-card-top"><span class="board-tag">' + esc(tagFor()) + "</span>" +
                 '<span class="thread-time">' + esc(t.time || fmtTime(t.created_at)) + "</span></div>" +
                 '<a href="comments.html?id=' + t.id + '" class="feed-title">' + esc(threadTitle(t)) + "</a>" +
                 '<div class="feed-author">' + esc(t.author || "Anonymous") + "</div>" +
                 '<p class="feed-snippet">' + esc(snippetOf(t)) + "</p>" +
                 '<div class="feed-chips">' + chipsHtml(t.tags) + "</div>" +
-                '<div class="feed-foot">' + countsFooter(t, replies) + "</div>" +
+                '<div class="feed-foot">' + actionsBar(t, replies) + "</div>" +
                 "</div>" + cardMenu(t);
             wireNode(wrap, t);
             return wrap;
@@ -214,14 +214,14 @@
             wrap.innerHTML =
                 (img ? '<a href="comments.html?id=' + t.id + '" class="feed-thumb"><img src="' + img + '" class="post-media" alt="post image" onerror="this.style.display=\'none\'"></a>' : "") +
                 '<div class="feed-row-main">' +
-                '<div class="feed-card-top"><span class="board-tag">' + esc(tagFor(t)) + "</span>" +
+                '<div class="feed-card-top"><span class="board-tag">' + esc(tagFor()) + "</span>" +
                 '<span class="thread-time">' + esc(t.time || fmtTime(t.created_at)) + "</span></div>" +
                 '<a href="comments.html?id=' + t.id + '" class="feed-title">' + esc(threadTitle(t)) + "</a>" +
                 '<div class="feed-author">' + esc(t.author || "Anonymous") + "</div>" +
                 '<p class="feed-snippet">' + esc(snippetOf(t)) + "</p>" +
                 '<div class="feed-chips">' + chipsHtml(t.tags) + "</div>" +
                 "</div>" +
-                '<div class="feed-row-side">' + countsFooter(t, replies) + "</div>" +
+                '<div class="feed-row-side">' + actionsBar(t, replies) + "</div>" +
                 cardMenu(t);
             wireNode(wrap, t);
             return wrap;
@@ -251,18 +251,38 @@
             try { localStorage.setItem("cm-feed-view", view); } catch (e) {}
             renderBoard();
         }
+        function localBoardPosts() {
+            try {
+                var o = JSON.parse(localStorage.getItem("cm-board-threads") || "{}");
+                return Object.keys(o).map(function(k) { return o[k]; }).filter(function(t) {
+                    return t && t.id && (t.board || board) === board;
+                });
+            } catch (e) { return []; }
+        }
         function loadBoard() {
-            fetch("/api/feed?board=" + encodeURIComponent(isMixed() ? "all" : board) + "&limit=60").then(function(res) {
+            fetch("/api/feed?board=" + encodeURIComponent(board)).then(function(res) {
                 return res.json().then(function(j) {
                     if (!res.ok || !j || !Array.isArray(j.threads)) throw new Error("feed failed");
                     return j.threads;
                 });
             }).then(function(list) {
-                threads = list;
+                threads = mergeLocal(list);
                 renderBoard();
             }).catch(function() {
+                threads = mergeLocal([]);
                 renderBoard();
             });
+        }
+        function mergeLocal(list) {
+            var seen = {};
+            var out = [];
+            list.forEach(function(t) {
+                if (t && t.id && (t.board || board) === board && !seen[t.id]) { seen[t.id] = 1; out.push(t); }
+            });
+            localBoardPosts().forEach(function(t) {
+                if (!seen[t.id]) { seen[t.id] = 1; out.push(t); }
+            });
+            return out;
         }
         var vcBtn = document.getElementById("view-cards");
         if (vcBtn) vcBtn.addEventListener("click", function() { setView("cards"); });
@@ -433,9 +453,9 @@
                     loadBoard();
                 }, function() {
                     try {
-                        var all = JSON.parse(localStorage.getItem("cm-user-threads") || "{}");
+                        var all = JSON.parse(localStorage.getItem("cm-board-threads") || "{}");
                         all[d.id] = { id: d.id, board: d.board, author: d.name, subject: d.subject, tags: d.tags, time: d.time, avatar: d.avatar, images: d.images.slice(), text: text };
-                        localStorage.setItem("cm-user-threads", JSON.stringify(all));
+                        localStorage.setItem("cm-board-threads", JSON.stringify(all));
                     } catch (e) {}
                     claimId(d.id);
                     closeModal();

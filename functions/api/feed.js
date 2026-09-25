@@ -3,7 +3,7 @@ import { json, getDb, threadRow } from './_db.js';
 export async function onRequestGet(context) {
   try {
     const db = getDb(context.env);
-    if (!db) return json({ error: 'DB not bound.', envKeys: Object.keys(context.env || {}) }, 500);
+    if (!db) return json({ error: 'DB not bound.' }, 500);
 
     const params = new URL(context.request.url).searchParams;
     const board = (params.get('board') || 'c').slice(0, 8);

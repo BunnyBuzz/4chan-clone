@@ -3,8 +3,10 @@
 
 (function boardPage() {
     try {
-        var boardNames = { c: "Community", a: "Anime", m: "Manga", d: "Discussion", th: "Theories", g: "雑談", nws: "News" };
-        var boardTag = { c: "/c/", a: "/anime/", m: "/manga/", d: "/discussion/", th: "/theories/", g: "/g/", nws: "/news/" };
+        var boardNames = { c: "Community", a: "Anime", m: "Manga", d: "Discussion", th: "Theories", g: "General", nws: "News" };
+        var boardTag = { c: "/c/", a: "/anime/", m: "/manga/", d: "/discussion/", th: "/theories/", g: "/general/", nws: "/news/" };
+        // /g/ is the mixed board: it shows posts from every board
+        function isMixed() { return board === "g"; }
         var feedEl = document.querySelector(".bthreads .bn2");
         if (!feedEl) return;
 
@@ -93,6 +95,10 @@
         }
         function firstImage(t) {
             return (t.images && t.images[0]) || "";
+        }
+        function tagFor(t) {
+            if (isMixed() && t.board && boardTag[t.board]) return boardTag[t.board];
+            return boardTag[board] || ("/" + board + "/");
         }
         function snippetOf(t) {
             var s = String(t.text || "").trim().replace(/\s+/g, " ");
@@ -189,7 +195,7 @@
             wrap.innerHTML =
                 (img ? '<a href="comments.html?id=' + t.id + '" class="feed-thumb"><img src="' + img + '" class="post-media" alt="post image" onerror="this.style.display=\'none\'"></a>' : "") +
                 '<div class="feed-card-main">' +
-                '<div class="feed-card-top"><span class="board-tag">' + esc(boardTag[board] || ("/" + board + "/")) + "</span>" +
+                '<div class="feed-card-top"><span class="board-tag">' + esc(tagFor(t)) + "</span>" +
                 '<span class="thread-time">' + esc(t.time || fmtTime(t.created_at)) + "</span></div>" +
                 '<a href="comments.html?id=' + t.id + '" class="feed-title">' + esc(threadTitle(t)) + "</a>" +
                 '<div class="feed-author">' + esc(t.author || "Anonymous") + "</div>" +
@@ -208,7 +214,7 @@
             wrap.innerHTML =
                 (img ? '<a href="comments.html?id=' + t.id + '" class="feed-thumb"><img src="' + img + '" class="post-media" alt="post image" onerror="this.style.display=\'none\'"></a>' : "") +
                 '<div class="feed-row-main">' +
-                '<div class="feed-card-top"><span class="board-tag">' + esc(boardTag[board] || ("/" + board + "/")) + "</span>" +
+                '<div class="feed-card-top"><span class="board-tag">' + esc(tagFor(t)) + "</span>" +
                 '<span class="thread-time">' + esc(t.time || fmtTime(t.created_at)) + "</span></div>" +
                 '<a href="comments.html?id=' + t.id + '" class="feed-title">' + esc(threadTitle(t)) + "</a>" +
                 '<div class="feed-author">' + esc(t.author || "Anonymous") + "</div>" +
@@ -246,7 +252,7 @@
             renderBoard();
         }
         function loadBoard() {
-            fetch("/api/feed?board=" + encodeURIComponent(board)).then(function(res) {
+            fetch("/api/feed?board=" + encodeURIComponent(isMixed() ? "all" : board) + "&limit=60").then(function(res) {
                 return res.json().then(function(j) {
                     if (!res.ok || !j || !Array.isArray(j.threads)) throw new Error("feed failed");
                     return j.threads;

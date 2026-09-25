@@ -614,6 +614,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (w._d) window.attachFeedDelete(w);
             });
         };
+        /* board feed views moved to boards.js (board.html) */
         function buildPost(d) {
             var uid = "m" + d.id;
             var wrap = document.createElement("div");
@@ -862,7 +863,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     if (t.images_dropped > 0) alert(t.images_dropped + " image(s) rejected by server.");
                     feed.insertBefore(buildPost({
                         id: t.id, name: t.author, tag: d.tag, text: t.text,
-                        avatar: d.avatar, time: "just now", images: t.images, replies: 0
+                        avatar: d.avatar, time: "just now", images: t.images, replies: 0,
+                        user_id: t.user_id || null
                     }), feed.firstChild);
                     clearComposer();
                 }, function() { publishLocal(); });

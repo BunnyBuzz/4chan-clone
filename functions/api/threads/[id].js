@@ -10,6 +10,9 @@ export async function onRequestGet(context) {
     const t = await db.prepare('SELECT * FROM threads WHERE id = ?').bind(id).first();
     if (!t) return json({ error: 'Thread not found.' }, 404);
 
+    await db.prepare('UPDATE threads SET views = views + 1 WHERE id = ?').bind(id).run();
+    t.views = (t.views || 0) + 1;
+
     const replies = await db
       .prepare('SELECT * FROM replies WHERE thread_id = ? ORDER BY created_at ASC')
       .bind(id)

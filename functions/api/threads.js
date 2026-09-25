@@ -18,6 +18,10 @@ export async function onRequestPost(context) {
     const author = me
       ? me.name
       : (String(body.author || 'Anonymous').trim() || 'Anonymous').slice(0, 30);
+    const subject = String(body.subject || '').trim().slice(0, 120);
+    const tags = Array.isArray(body.tags)
+      ? body.tags.filter((x) => typeof x === 'string').map((x) => x.replace(/^#/, '').trim().slice(0, 24)).filter(Boolean).slice(0, 5)
+      : [];
     const text = String(body.text || '').trim();
     const images = Array.isArray(body.images)
       ? body.images.filter((u) => typeof u === 'string' && u.startsWith('http')).slice(0, 4)
@@ -30,12 +34,12 @@ export async function onRequestPost(context) {
     const now = Math.floor(Date.now() / 1000);
 
     await db
-      .prepare('INSERT INTO threads (id, board, author, user_id, text, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(id, board, author, me ? me.id : null, text, JSON.stringify(images), now)
+      .prepare('INSERT INTO threads (id, board, author, user_id, subject, tags, text, images, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(id, board, author, me ? me.id : null, subject, JSON.stringify(tags), text, JSON.stringify(images), now)
       .run();
 
     return json(
-      { thread: { id, board, author, user_id: me ? me.id : null, text, images, created_at: now, replies: 0 }, images_dropped: (Array.isArray(body.images) ? body.images.length : 0) - images.length },
+      { thread: { id, board, author, user_id: me ? me.id : null, subject, tags, text, images, created_at: now, replies: 0, views: 0, likes: 0 } },
       201
     );
   } catch (e) {

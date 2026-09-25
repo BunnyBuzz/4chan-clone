@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="comments.css?v=3">
-    <title>Attack on Titan - What do you think about the ending? - Katsura</title>
+    <title>Katsura</title>
     <link rel="icon" type="image/png" href="assets/favicon.ico">
 </head>
-<body>
+<body data-board="a">
     <header>
         <div  class="upper">
             <a href="index.html">
             <img id="logo" src="assets/katsura-logo.png" alt="404" width="50" height="50"/>
             </a>
-            <input type="text" id="search" placeholder="Search...">
+            <input type="text" id="search" placeholder="Search..." oninput="filterPosts(this.value)">
         </div>
     </header>
     <div class="fullmain"> 
@@ -55,35 +54,24 @@
             </div>
         </div>
         <div class="middleside">
-            <div class="cm-crumb"><a href="index.html">/a/</a> Attack on Titan - What do you think about the ending?</div>
-
-            <div class="cm-panel">
-            <div class="cm-threadbar">
-                <span>Attack on Titan - What do you think about the ending?</span>
-                <button type="button" id="cm-reply-btn">Reply ▼</button>
+            <div class="header" id="header">
+                <p class="h1"> ▸ welcome to the anime board preview — seasonal discussion starts here. Be kind, no spoilers without tags.</p>
+                <span id="close-banner" class="close-btn">x</span>
             </div>
 
-            <div id="cm-thread"></div>
-
-            <div id="cm-replies"></div>
-
-            <div class="cm-quick" id="cm-quick">
-                <div class="cm-quick-title">Quick Reply</div>
-                <div class="cm-quick-namerow">
-                    <label for="cm-quick-name">Name</label>
-                    <input type="text" id="cm-quick-name" dir="auto" placeholder="Anonymous" maxlength="30">
+            <div class="threads bthreads">
+                <div class="n1 latest-head">
+                    <h3 class="board" id="board-title">Board</h3>
+                    <div class="latest-tools">
+                        <div class="view-toggle" role="group" aria-label="View mode">
+                            <button type="button" id="view-cards" class="view-btn active" aria-pressed="true">Cards</button>
+                            <button type="button" id="view-compact" class="view-btn" aria-pressed="false">Compact</button>
+                        </div>
+                        <button type="button" id="new-thread-btn">+ New Thread</button>
+                    </div>
                 </div>
-                <textarea id="cm-quick-text" dir="auto" placeholder="Write your reply..." rows="3" maxlength="2000"></textarea>
-                <div class="cm-quick-foot">
-                    <label for="cm-file-upload" class="icon-btn">Add_img</label>
-                    <input type="file" id="cm-file-upload" accept="image/*" multiple hidden>
-                    <div id="cm-images-container"></div>
-                    <span class="pf-right">
-                        <span class="char-count" id="cm-quick-count">0/2000</span>
-                        <button type="button" id="cm-post-reply">Post Reply</button>
-                    </span>
+                <div class="n2 bn2" id="board-feed">
                 </div>
-            </div>
             </div>
         </div>
 
@@ -110,6 +98,47 @@
     </div>
 
 
+
+        <div class="thread-modal" id="thread-modal" hidden>
+            <div class="modal-box" role="dialog" aria-label="Create thread">
+                <div class="modal-head">
+                    <h3>Create Thread</h3>
+                    <button type="button" id="modal-close" aria-label="Close">×</button>
+                </div>
+                <label class="modal-label">Board
+                    <select id="composer-board">
+                        <option value="c">Community</option>
+                        <option value="a">Anime</option>
+                        <option value="m">Manga</option>
+                        <option value="d">Discussion</option>
+                        <option value="th">Theories</option>
+                        <option value="g">雑談</option>
+                        <option value="nws">News</option>
+                    </select>
+                </label>
+                <label class="modal-label">Subject
+                    <input type="text" id="composer-subject" placeholder="Thread title" maxlength="120">
+                </label>
+                <div class="pf-row">
+                    <label for="composer-name">Name</label>
+                    <input type="text" id="composer-name" dir="auto" placeholder="Anonymous" maxlength="30">
+                    <input id="composer-tag" dir="auto" class="c-tag" placeholder="# tags, comma separated" maxlength="60">
+                </div>
+                <textarea id="composer-text" dir="auto" placeholder="Share something..." maxlength="2000"></textarea>
+                <div class="pf-foot">
+                    <label for="b-file-upload" class="icon-btn">Add_img</label>
+                    <input type="file" id="b-file-upload" accept="image/*" multiple hidden>
+                    <div id="b-images"></div>
+                    <span class="pf-right">
+                        <span class="char-count" id="b-count">0/2000</span>
+                    </span>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" id="modal-cancel">Cancel</button>
+                    <button class="post-btn" id="modal-post" type="button">Post Thread</button>
+                </div>
+            </div>
+        </div>
 
         <div class="footer">
             <div class="board4">
@@ -154,6 +183,7 @@
                 </ul>
             </div>
         </div>
-    <script src="comments.js?v=3"></script>
+    <script src="app.js"></script>
+    <script src="boards.js"></script>
 </body>
 </html>

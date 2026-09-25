@@ -29,12 +29,26 @@ export function parseImages(v) {
   }
 }
 
+export function parseTags(v) {
+  try {
+    const a = JSON.parse(v || '[]');
+    return Array.isArray(a)
+      ? a.filter((x) => typeof x === 'string').map((x) => x.replace(/^#/, '').trim().slice(0, 24)).filter(Boolean).slice(0, 5)
+      : [];
+  } catch (e) {
+    return [];
+  }
+}
+
 export function threadRow(r) {
   return {
     id: r.id,
     board: r.board,
     author: r.author,
     user_id: r.user_id || null,
+    subject: r.subject || '',
+    tags: parseTags(r.tags),
+    views: r.views || 0,
     text: r.text,
     images: parseImages(r.images),
     created_at: r.created_at

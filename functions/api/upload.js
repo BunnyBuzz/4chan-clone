@@ -33,9 +33,10 @@ export async function onRequestPost(context) {
       body: catboxData
     });
 
-    if (!response.ok) throw new Error('Upload failed to server,');
+    const raw = await response.text();
+    if (!response.ok) throw new Error('File host ' + response.status + ': ' + raw.slice(0, 200));
 
-    const url = (await response.text()).trim();
+    const url = raw.trim();
 
     if (!url || url.startsWith('ERROR')) {
       throw new Error(url || 'Upload rejected by file host.');

@@ -542,6 +542,7 @@ function cmDeriveTitle() {
         }
         replyBtn.textContent = files.length ? "Uploading…" : "Posting…";
         var imgIssues = [];
+        var imgFailed = [];
         var tooBig = files.filter(function(f) { return f.type === "image/gif" && f.size > 10 * 1024 * 1024; });
         if (tooBig.length) {
             alert("GIF over 10MB can't be uploaded — it was removed. The rest will post.");
@@ -577,6 +578,11 @@ function cmDeriveTitle() {
             ]);
         }
         function done() {
+            if (imgFailed.length) {
+                alert("Upload failed for: " + imgFailed.join(", ") + ". Post blocked — images must upload first.");
+                unlockReplyBtn();
+                return;
+            }
             if (imgIssues.length) alert("Image note: " + imgIssues.join("; ") + ".");
             var payload = { author: name, text: text, images: imgs };
             cmApi("/api/threads/" + encodeURIComponent(cmTid) + "/replies", {
@@ -612,17 +618,16 @@ function cmDeriveTitle() {
         var pending = files.length;
         files.forEach(function(f) {
             cmWithTimeout(cmProcessImage(f), 30000).then(function(item) {
-                if (!item) { if (--pending === 0) done(); return; }
+                if (!item) { imgFailed.push("an image (processing failed)"); if (--pending === 0) done(); return; }
                 cmWithTimeout(cmUploadToApi(item), 60000).then(function(url) {
                     imgs.push(url);
                     if (--pending === 0) done();
                 }, function() {
-                    imgIssues.push("upload failed — local preview only, won't sync");
-                    imgs.push(item.local);
+                    imgFailed.push(item.name || "image");
                     if (--pending === 0) done();
                 });
             }, function() {
-                imgIssues.push("image processing timed out — skipped");
+                imgFailed.push("an image (processing timed out)");
                 if (--pending === 0) done();
             });
         });

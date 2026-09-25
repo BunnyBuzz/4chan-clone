@@ -744,6 +744,7 @@ document.addEventListener("DOMContentLoaded", function() {
             var btnLabel = postBtn.textContent;
             postBtn.textContent = files.length ? "Uploading…" : "Posting…";
             var imgIssues = [];
+            var imgFailed = [];
             function unlockBtn() { postBtn.disabled = false; postBtn.textContent = btnLabel; }
             function withTimeout(promise, ms) {
                 return new Promise(function(resolve, reject) {
@@ -841,6 +842,11 @@ document.addEventListener("DOMContentLoaded", function() {
             }
             function publish() {
                 postBtn.textContent = "Posting…";
+                if (imgFailed.length) {
+                    alert("Upload failed for: " + imgFailed.join(", ") + ". Post blocked — images must upload first.");
+                    unlockBtn();
+                    return;
+                }
                 if (imgIssues.length) alert("Image note: " + imgIssues.join("; ") + ".");
                 fetch("/api/threads", {
                     method: "POST",
@@ -853,6 +859,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     });
                 }).then(function(t) {
                     claimId(t.id);
+                    if (t.images_dropped > 0) alert(t.images_dropped + " image(s) rejected by server.");
                     feed.insertBefore(buildPost({
                         id: t.id, name: t.author, tag: d.tag, text: t.text,
                         avatar: d.avatar, time: "just now", images: t.images, replies: 0
@@ -868,17 +875,16 @@ document.addEventListener("DOMContentLoaded", function() {
             var pending = files.length;
             files.forEach(function(f) {
                 withTimeout(processImage(f), 30000).then(function(item) {
-                    if (!item) { if (--pending === 0) publish(); return; }
+                    if (!item) { imgFailed.push("an image (processing failed)"); if (--pending === 0) publish(); return; }
                     withTimeout(uploadToApi(item), 60000).then(function(url) {
                         d.images.push(url);
                         if (--pending === 0) publish();
                     }, function() {
-                        imgIssues.push("upload failed — local preview only, won't sync");
-                        d.images.push(item.local);
+                        imgFailed.push(item.name || "image");
                         if (--pending === 0) publish();
                     });
                 }, function() {
-                    imgIssues.push("image processing timed out — skipped");
+                    imgFailed.push("an image (processing timed out)");
                     if (--pending === 0) publish();
                 });
             });
